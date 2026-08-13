@@ -36,13 +36,40 @@
      color:#fff;font-weight:800;font-size:17px;}
   .sw-btn.running{background:#c0392b;}
   .sw-reset{text-align:center;margin-top:10px;font-size:13px;color:#54687a;text-decoration:underline;}
-  .result{margin-top:14px;padding:14px;border-radius:12px;background:#e6f2fb;border:1px solid #bcdcf3;
+  .result{margin-top:14px;padding:16px;border-radius:14px;background:#e6f2fb;border:1px solid #bcdcf3;
      display:none;}
   .result.show{display:block;}
-  .result .r-rank{font-size:26px;font-weight:800;color:#0b3d5c;}
-  .result .r-detail{font-size:13px;color:#3c5a70;margin-top:4px;line-height:1.5;}
+  .result.pop{animation:popIn .45s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes popIn{0%{transform:scale(.9);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .result .r-rank{font-size:30px;font-weight:800;color:#0b3d5c;font-variant-numeric:tabular-nums;}
+  .result .r-detail{font-size:13px;color:#3c5a70;margin-top:6px;line-height:1.5;}
   .result.empty{background:#fdeee3;border-color:#f0c090;}
   .result.empty .r-rank{color:#b8722a;font-size:15px;}
+  .podium-banner{display:none;text-align:center;font-size:15px;font-weight:800;padding:10px;
+     border-radius:12px;margin-bottom:10px;}
+  .podium-banner.show{display:block;animation:podiumPulse .8s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes podiumPulse{0%{transform:scale(.75);opacity:0;}60%{transform:scale(1.07);opacity:1;}100%{transform:scale(1);}}
+  .podium-banner.gold{background:linear-gradient(135deg,#fff6d8,#ffe27a);color:#7a5b00;border:1px solid #e8c34a;}
+  .podium-banner.silver{background:linear-gradient(135deg,#f4f6f8,#dfe4e8);color:#4a555c;border:1px solid #c3cad0;}
+  .podium-banner.bronze{background:linear-gradient(135deg,#f6e2d0,#e3b78c);color:#6b3d15;border:1px solid #cf9a63;}
+  .record-banner{display:none;text-align:center;font-size:13.5px;font-weight:800;padding:9px;
+     border-radius:12px;margin-bottom:10px;background:linear-gradient(135deg,#e5dbfb,#c9b3f7);
+     color:#4a2b8a;border:1px solid #b79ae8;}
+  .record-banner.show{display:block;animation:recordFlash .7s ease-out;}
+  @keyframes recordFlash{0%{transform:scale(.85);opacity:0;box-shadow:0 0 0 rgba(155,109,255,0);}
+     50%{box-shadow:0 0 18px rgba(155,109,255,.65);}
+     100%{transform:scale(1);opacity:1;box-shadow:0 0 0 rgba(155,109,255,0);}}
+  .gauge-wrap{margin-top:12px;display:none;}
+  .gauge-wrap.show{display:block;}
+  .gauge-track{background:#c9dbe8;border-radius:20px;height:14px;overflow:hidden;}
+  .gauge-fill{height:100%;width:0%;border-radius:20px;background:linear-gradient(90deg,#0f6aa3,#1a8a5a);
+     transition:width .9s cubic-bezier(.22,.61,.36,1);}
+  .gauge-label{font-size:12px;color:#3c5a70;margin-top:6px;font-weight:600;text-align:center;}
+  .confetti-piece{position:fixed;top:-12px;width:8px;height:14px;opacity:.95;pointer-events:none;
+     z-index:999;border-radius:2px;animation-name:confettiFall;animation-timing-function:linear;
+     animation-fill-mode:forwards;}
+  @keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1;}
+     100%{transform:translateY(110vh) rotate(620deg);opacity:.15;}}
   table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px;}
   thead th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.02em;color:#8a99a6;
      padding:6px 8px;border-bottom:1px solid #e3ebf1;}
@@ -99,7 +126,13 @@
   </div>
 
   <div class="result" id="resultBox">
-    <div class="r-rank" id="rRank"></div>
+    <div class="podium-banner" id="podiumBanner"></div>
+    <div class="record-banner" id="recordBanner"></div>
+    <div class="r-rank"><span id="rRankNum">-</span><span id="rRankSuffix"></span></div>
+    <div class="gauge-wrap" id="gaugeWrap">
+      <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
+      <div class="gauge-label" id="gaugeLabel"></div>
+    </div>
     <div class="r-detail" id="rDetail"></div>
   </div>
 
@@ -329,24 +362,71 @@ document.getElementById('clearHistBtn').addEventListener('click', function(){
   renderHistory();
 });
 
+function animateNumber(el, from, to, duration){
+  var start = null;
+  function step(ts){
+    if(!start) start = ts;
+    var progress = Math.min((ts-start)/duration, 1);
+    var eased = 1 - Math.pow(1-progress, 3);
+    var val = Math.round(from + (to-from)*eased);
+    el.textContent = val;
+    if(progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function launchConfetti(n){
+  var colors = ['#0f6aa3','#1a8a5a','#e8c34a','#c0392b','#7a5b00','#54687a','#0b3d5c'];
+  for(var i=0;i<n;i++){
+    (function(){
+      var p = document.createElement('div');
+      p.className = 'confetti-piece';
+      p.style.left = (Math.random()*100)+'vw';
+      p.style.background = colors[Math.floor(Math.random()*colors.length)];
+      var duration = 1.6 + Math.random()*1.2;
+      var delay = Math.random()*0.35;
+      p.style.animationDuration = duration+'s';
+      p.style.animationDelay = delay+'s';
+      document.body.appendChild(p);
+      setTimeout(function(){ p.remove(); }, (duration+delay)*1000 + 250);
+    })();
+  }
+}
+function resetExtras(){
+  var pb = document.getElementById('podiumBanner');
+  pb.className = 'podium-banner';
+  pb.textContent = '';
+  var rb = document.getElementById('recordBanner');
+  rb.className = 'record-banner';
+  rb.textContent = '';
+  document.getElementById('gaugeWrap').className = 'gauge-wrap';
+  document.getElementById('gaugeFill').style.width = '0%';
+}
+var MIN_SAMPLE_FOR_PODIUM = 10;
+window.__PERSONAL_BEST__ = {};
+
 function triggerCompute(centOverride){
   var swIdx = getSelected('swimmer');
   var sheet = getSelected('epreuve');
   var bassinKey = getSelected('bassin');
   var box = document.getElementById('resultBox');
-  var rRank = document.getElementById('rRank');
+  var rRankNum = document.getElementById('rRankNum');
+  var rRankSuffix = document.getElementById('rRankSuffix');
   var rDetail = document.getElementById('rDetail');
 
   if(swIdx === null || sheet === null || bassinKey === null){
+    resetExtras();
     box.className = 'result show empty';
-    rRank.textContent = 'Sélection incomplète';
+    rRankNum.textContent = '';
+    rRankSuffix.textContent = 'Sélection incomplète';
     rDetail.textContent = 'Choisissez un nageur, une épreuve et un bassin.';
     return;
   }
   var cent = (typeof centOverride === 'number') ? centOverride : parseTimeToCent(document.getElementById('timeInput').value);
   if(cent === null){
+    resetExtras();
     box.className = 'result show empty';
-    rRank.textContent = 'Temps invalide';
+    rRankNum.textContent = '';
+    rRankSuffix.textContent = 'Temps invalide';
     rDetail.textContent = 'Format attendu : 32.45 ou 1:05.30';
     return;
   }
@@ -362,8 +442,10 @@ function triggerCompute(centOverride){
   document.getElementById('timeInput').value = formatTime(cent);
 
   if(!arr || arr.length === 0){
+    resetExtras();
     box.className = 'result show empty';
-    rRank.textContent = 'Aucune donnée';
+    rRankNum.textContent = '';
+    rRankSuffix.textContent = 'Aucune donnée';
     rDetail.textContent = swimmer.name + ' (' + swimmer.year + ') — ' + epMeta.label + ' — ' + bassinLabel + ' : pas de nageurs comparables dans la base.';
     window.__HISTORY__.push({heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), nageur:swimmer.name, epreuveLabel:epMeta.label, bassinLabel:bassinLabel, chrono:formatTime(cent), rangTxt:'—'});
     renderHistory();
@@ -372,11 +454,57 @@ function triggerCompute(centOverride){
   var rank = rankAt(arr, cent);
   var n = arr.length;
   var pct = Math.round((1 - (rank-1)/n) * 100);
+  var beaten = Math.max(0, n - rank);
+  var beatenPct = Math.round((beaten/n) * 100);
   var leader = arr[0];
+
   box.className = 'result show';
-  rRank.textContent = rank + 'e / ' + n;
+  box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+
+  rRankSuffix.textContent = 'e / ' + n;
+  animateNumber(rRankNum, n, rank, 600);
+
+  var gw = document.getElementById('gaugeWrap');
+  var gf = document.getElementById('gaugeFill');
+  gw.className = 'gauge-wrap show';
+  gf.style.width = '0%';
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ gf.style.width = beatenPct + '%'; }); });
+  document.getElementById('gaugeLabel').textContent = beatenPct + '% des nageurs de la base battus (' + beaten + ' sur ' + n + ')';
+
+  var smallSample = n < MIN_SAMPLE_FOR_PODIUM;
+  var pb = document.getElementById('podiumBanner');
+  if(rank <= 3 && !smallSample){
+    var medal = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : '🥉');
+    var tier = rank === 1 ? 'gold' : (rank === 2 ? 'silver' : 'bronze');
+    var txt = rank === 1 ? (medal + ' 1er de la base — record du groupe !') :
+              (medal + ' ' + rank + 'e de la base — sur le podium !');
+    pb.className = 'podium-banner show ' + tier;
+    pb.textContent = txt;
+    launchConfetti(rank === 1 ? 44 : 26);
+  } else {
+    pb.className = 'podium-banner';
+    pb.textContent = '';
+  }
+
+  // record personnel de session : meilleur chrono enregistré cette session pour ce nageur + cette épreuve
+  // (indépendant du bassin sélectionné : c'est un progrès sur la discipline, pas sur le filtre d'affichage)
+  var pbKey = swIdx + '|' + sheet;
+  var prevBest = window.__PERSONAL_BEST__[pbKey];
+  var rb = document.getElementById('recordBanner');
+  if(typeof prevBest === 'number' && cent < prevBest){
+    var gain = prevBest - cent;
+    rb.className = 'record-banner show';
+    rb.textContent = '⚡ Nouveau record personnel de la session ! (' + formatTime(gain) + ' de mieux)';
+    window.__PERSONAL_BEST__[pbKey] = cent;
+  } else {
+    rb.className = 'record-banner';
+    rb.textContent = '';
+    if(typeof prevBest !== 'number' || cent < prevBest){ window.__PERSONAL_BEST__[pbKey] = cent; }
+  }
+
   rDetail.textContent = swimmer.name + ' (' + swimmer.year + ') — ' + epMeta.label + ' — ' + bassinLabel + ' — ' + formatTime(cent) +
-    ' — top ' + pct + '% — meilleur de la base : ' + formatTime(leader);
+    ' — top ' + pct + '% — meilleur de la base : ' + formatTime(leader) +
+    (smallSample && rank <= 3 ? ' (échantillon réduit, pas de podium affiché)' : '');
   window.__HISTORY__.push({heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), nageur:swimmer.name, epreuveLabel:epMeta.label, bassinLabel:bassinLabel, chrono:formatTime(cent), rangTxt:(rank+'e/'+n)});
   renderHistory();
 }
