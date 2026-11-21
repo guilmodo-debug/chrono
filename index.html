@@ -30,11 +30,18 @@ th{font-size:11px;color:var(--mu);text-transform:uppercase}td.r,th.r{text-align:
 tr.me td{background:#4a3b0a;color:var(--gold);font-weight:700}tr.new td{background:#0d4a44;color:#bff;font-weight:700}
 tr.near td{background:#16305a}
 .n{font-variant-numeric:tabular-nums}.hid{display:none}.sm{font-size:11px;color:var(--mu)}
+.prog{border:1px solid var(--ac);background:linear-gradient(135deg,#0e3a46,#13294a)}
+.cd{font-size:44px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;color:var(--ac);line-height:1.1}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:11px 10px;margin-top:6px;background:#0e2240;border-radius:10px;font-size:15px;border:2px solid transparent}
+.pr.nx{border-color:var(--ac)}.pr.done{opacity:.45}.pr b{font-variant-numeric:tabular-nums;font-size:17px}
+.dl{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;font-size:12px;color:var(--mu)}
+.dl button{padding:7px 12px;border-radius:8px;border:0;background:var(--card2);color:var(--tx);font-size:14px}
 </style></head><body>
 <h1>Chrono Léo</h1>
 <div class="sub">Données au 20/11/2026 · 9 679 performances · garçons Avenirs (2017-2020)</div>
 <div class="tabs"><div class="tab on" id="t1" onclick="tab(1)">Mon rang</div><div class="tab" id="t2" onclick="tab(2)">TOP 30</div></div>
 
+<div class="card prog" id="prog"></div>
 <div class="lbl">Épreuve</div><div class="chips" id="ep"></div>
 <div class="lbl">Bassin</div><div class="chips" id="ba"></div>
 <div class="lbl">Comparer à</div><div class="chips" id="ct"></div>
@@ -125,5 +132,25 @@ function renderTop(){const p=pool(S.ep,S.ba,S.ct),L=leoRows(S.ep,S.ba);const lb=
  if(lb!==null&&!leoShown){const rk=p.filter(r=>r[3]<lb).length+1;h+=`<tr class="me"><td>${rk}</td><td>Léo (record)</td><td class="r n">${fmt(lb)}</td></tr>`}
  if(!top.length)h+='<tr><td colspan=3 class="sm">Pas de données pour ce filtre</td></tr>';
  h+=`</table><div class="sm" style="margin-top:6px">${p.length} nageurs dans ce filtre</div>`;$('top').innerHTML=h}
-draw();
+
+const PROG=[{ep:'100m 4 nages M',lab:'100 m 4 nages',t:'15:44'},{ep:'25m dos M',lab:'25 m dos',t:'16:27'},{ep:'50m NL M',lab:'50 m nage libre',t:'17:36'}];
+const DAY='2026-11-21';let DELAY=0,NXI=-2;
+const wh=p=>new Date(DAY+'T'+p.t+':00+01:00').getTime()+DELAY*60000;
+const hm=ms=>new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).replace(':','h');
+function nextIdx(){const n=Date.now();return PROG.findIndex(p=>wh(p)>n)}
+function selProg(i){S.ep=PROG[i].ep;S.ba='25m';S.val=null;$('res').classList.add('hid');draw();tab(1)}
+function setDelay(d){DELAY=Math.max(0,DELAY+d);NXI=-2;tickProg()}
+function renderProg(){const nx=nextIdx();NXI=nx;
+ let h='<div class="lbl" style="margin:0 0 4px">Suresnes · Avenir journée 5 zone Centre · 25 m</div><div class="mu" id="cdl"></div><div class="cd" id="cd"></div>';
+ PROG.forEach((p,i)=>{h+=`<div class="pr ${i===nx?'nx':''} ${nx===-1||(nx>=0&&i<nx)?'done':''}" onclick="selProg(${i})"><span>${p.lab}</span><span><b>${hm(wh(p))}</b></span></div>`});
+ h+=`<div class="dl"><span>Horaires indicatifs. Retard : ${DELAY} min</span><button onclick="setDelay(-5)">-5</button><button onclick="setDelay(5)">+5</button></div>`;
+ $('prog').innerHTML=h}
+function tickProg(){if(nextIdx()!==NXI||NXI===-2)renderProg();const nx=NXI;
+ if(nx===-1){$('cdl').textContent='Programme du jour';$('cd').textContent='Terminé';return}
+ const p=PROG[nx],d=Math.max(0,Math.floor((wh(p)-Date.now())/1000));
+ const dd=Math.floor(d/86400),hh=Math.floor(d%86400/3600),mm=Math.floor(d%3600/60),ss=d%60;
+ $('cdl').textContent='Prochaine épreuve : '+p.lab+' à '+hm(wh(p));
+ $('cd').textContent=(dd?dd+'j ':'')+(hh?hh+':':'')+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')}
+{const n=nextIdx();if(n>=0){S.ep=PROG[n].ep;S.ba='25m'}}
+draw();tickProg();setInterval(tickProg,1000);
 </script></body></html>
