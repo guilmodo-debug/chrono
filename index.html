@@ -39,7 +39,7 @@ tr.near td{background:#16305a}
 </style></head><body>
 <h1>Chrono Léo</h1>
 <div class="sub">Données au 20/11/2026 · 9 679 performances · garçons Avenirs (2017-2020)</div>
-<div class="tabs"><div class="tab on" id="t1" onclick="tab(1)">Mon rang</div><div class="tab" id="t2" onclick="tab(2)">TOP 30</div></div>
+<div class="tabs"><div class="tab on" id="t1" onclick="tab(1)">Mon rang</div><div class="tab" id="t2" onclick="tab(2)">TOP 30</div><div class="tab" id="t3" onclick="tab(3)">Programme</div></div>
 
 <div class="card prog" id="prog"></div>
 <div class="lbl">Épreuve</div><div class="chips" id="ep"></div>
@@ -60,6 +60,7 @@ tr.near td{background:#16305a}
 </div>
 
 <div id="v2" class="hid"><div class="card" id="top"></div></div>
+<div id="v3" class="hid"><div class="card" id="all"></div></div>
 <div class="sm" style="margin-top:14px">Noms réduits à l'initiale. Usage strictement personnel. Source : liveffn, import du 20/11/2026. Le rang est calculé sur les meilleures performances connues, pas sur le classement officiel FFN.</div>
 
 <script>
@@ -90,7 +91,7 @@ function setCt(k){S.ct=k;draw()}
 function leoCard(){const L=leoRows(S.ep,S.ba),el=$('leoCard');if(!L.length){el.classList.remove('hid');el.innerHTML='<b>Record de Léo</b><br><span class="sm">Aucun temps officiel enregistré sur cette épreuve</span>';return}
  const b=L[0],p=pool(S.ep,S.ba,S.ct);const rk=p.filter(r=>r[3]<b[0]).length+1;
  el.classList.remove('hid');el.innerHTML=`<b>Record de Léo : ${fmt(b[0])}</b> <span class="sm" style="color:#e8d9a0">${fd(b[1])} ${b[2]}</span><br><span class="sm" style="color:#e8d9a0">Classé ${rk}e sur ${p.length+1} (${$('ct').querySelector('.on').textContent})</span>`}
-function tab(n){$('v1').classList.toggle('hid',n!==1);$('v2').classList.toggle('hid',n!==2);$('t1').classList.toggle('on',n===1);$('t2').classList.toggle('on',n===2)}
+function tab(n){for(let i=1;i<=3;i++){$('v'+i).classList.toggle('hid',n!==i);$('t'+i).classList.toggle('on',n===i)}}
 function tick(){S.el=Date.now()-S.t0;$('sw').textContent=fmt(S.el/10)}
 function startStop(){if(!S.run){S.t0=Date.now()-S.el;S.timer=setInterval(tick,30);S.run=true;$('go').textContent='Arrêt';$('go').classList.add('s')}
  else{clearInterval(S.timer);tick();S.run=false;$('go').textContent='Départ';$('go').classList.remove('s');S.val=Math.round(S.el/10);$('man').value=fmt(S.val);validate()}}
@@ -133,13 +134,22 @@ function renderTop(){const p=pool(S.ep,S.ba,S.ct),L=leoRows(S.ep,S.ba);const lb=
  if(!top.length)h+='<tr><td colspan=3 class="sm">Pas de données pour ce filtre</td></tr>';
  h+=`</table><div class="sm" style="margin-top:6px">${p.length} nageurs dans ce filtre</div>`;$('top').innerHTML=h}
 
-const PROG=[{ep:'100m 4 nages M',lab:'100 m 4 nages',t:'15:44'},{ep:'25m dos M',lab:'25 m dos',t:'16:27'},{ep:'50m NL M',lab:'50 m nage libre',t:'17:36'}];
+const ALL=[
+['15:30','100 m 4 nages','D'],['15:44','100 m 4 nages','M','100m 4 nages M',1],['15:55','200 m 4 nages','D'],['16:04','200 m 4 nages','M'],
+['16:04','25 m papillon','D','', 0,'U11 et moins'],['16:08','25 m papillon','M','25m papillon M',0,'U11 et moins'],['16:09','50 m papillon','D','',0,'U11 et moins'],['16:15','50 m papillon','M','50m papillon M',0,'U11 et moins'],
+['16:18','25 m dos','D'],['16:27','25 m dos','M','25m dos M',1],['16:32','50 m dos','D','',0,'U11 et moins'],['16:42','50 m dos','M','50m dos M',0,'U11 et moins'],
+['16:51','25 m brasse','D'],['16:57','25 m brasse','M','25m brasse M'],['16:59','50 m brasse','D','',0,'U11 et moins'],['17:11','50 m brasse','M','50m brasse M',0,'U11 et moins'],
+['17:20','25 m nage libre','D'],['17:22','25 m nage libre','M','25m NL M'],['17:22','50 m nage libre','D','',0,'U11 et moins'],['17:36','50 m nage libre','M','50m NL M',1,'U11 et moins'],
+['17:48','200 m nage libre','D','',0,'U11 et moins'],['18:02','200 m nage libre','M','',0,'U11 et moins'],['18:10','400 m nage libre','D','',0,'U11'],['18:18','400 m nage libre','M','',0,'U11'],
+['18:18','4x50 m nage libre','D','',0,'U11'],['18:23','4x50 m nage libre','M','',0,'U11']
+].map(a=>({t:a[0],lab:a[1],sx:a[2],ep:a[3]||'',leo:!!a[4],n:a[5]||''}));
+const PROG=ALL.filter(p=>p.leo);
 const DAY='2026-11-21';let DELAY=0,NXI=-2;
 const wh=p=>new Date(DAY+'T'+p.t+':00+01:00').getTime()+DELAY*60000;
 const hm=ms=>new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).replace(':','h');
 function nextIdx(){const n=Date.now();return PROG.findIndex(p=>wh(p)>n)}
 function selProg(i){S.ep=PROG[i].ep;S.ba='25m';S.val=null;$('res').classList.add('hid');draw();tab(1)}
-function setDelay(d){DELAY=Math.max(0,DELAY+d);NXI=-2;tickProg()}
+function setDelay(d){DELAY=Math.max(0,DELAY+d);NXI=-2;SIG='';tickProg();progAll()}
 function renderProg(){const nx=nextIdx();NXI=nx;
  let h='<div class="lbl" style="margin:0 0 4px">Suresnes · Avenir journée 5 zone Centre · 25 m</div><div class="mu" id="cdl"></div><div class="cd" id="cd"></div>';
  PROG.forEach((p,i)=>{h+=`<div class="pr ${i===nx?'nx':''} ${nx===-1||(nx>=0&&i<nx)?'done':''}" onclick="selProg(${i})"><span>${p.lab}</span><span><b>${hm(wh(p))}</b></span></div>`});
@@ -151,6 +161,19 @@ function tickProg(){if(nextIdx()!==NXI||NXI===-2)renderProg();const nx=NXI;
  const dd=Math.floor(d/86400),hh=Math.floor(d%86400/3600),mm=Math.floor(d%3600/60),ss=d%60;
  $('cdl').textContent='Prochaine épreuve : '+p.lab+' à '+hm(wh(p));
  $('cd').textContent=(dd?dd+'j ':'')+(hh?hh+':':'')+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')}
+
+let PF='all',SIG='';
+function setPF(k){PF=k;SIG='';progAll()}
+function selAll(i){const p=ALL[i];if(!p.ep)return;S.ep=p.ep;S.ba='25m';S.val=null;$('res').classList.add('hid');draw();tab(1)}
+function progAll(){const n=Date.now();let cur=-1;ALL.forEach((p,i)=>{if(wh(p)<=n)cur=i});
+ const sig=PF+'|'+cur+'|'+DELAY;if(sig===SIG)return;SIG=sig;
+ const rows=ALL.map((p,i)=>[p,i]).filter(([p])=>PF==='all'||(PF==='M'&&p.sx==='M')||(PF==='leo'&&p.leo));
+ let h='<div class="lbl" style="margin:0 0 4px">Suresnes · samedi 21/11/2026 · horaires indicatifs'+(DELAY?' · retard '+DELAY+' min':'')+'</div><div class="chips" style="margin-bottom:6px">'+[['all','Tout'],['M','Messieurs'],['leo','Léo']].map(([k,l])=>`<div class="chip ${k===PF?'on':''}" onclick="setPF('${k}')">${l}</div>`).join('')+'</div>';
+ if(cur>=0)h+=`<div class="mu" style="margin:6px 0">Dernier départ : ${ALL[cur].lab} ${ALL[cur].sx==='M'?'Messieurs':'Dames'} (${hm(wh(ALL[cur]))})</div>`;
+ for(const [p,i] of rows){const past=wh(p)<n&&i!==cur,isc=i===cur;
+  h+=`<div class="pr ${p.leo?'nx':''} ${past?'done':''}" style="${isc?'background:#16305a;':''}${p.ep?'':'cursor:default'}" onclick="selAll(${i})"><span><b style="font-size:15px">${hm(wh(p))}</b> &nbsp;${p.lab} <span class="sm">${p.sx==='M'?'Messieurs':'Dames'}${p.n?' · '+p.n:''}</span>${p.leo?' <span style="color:var(--gold)">Léo</span>':''}</span>${isc?'<span class="sm" style="color:var(--ac)">en cours</span>':''}</div>`}
+ h+='<div class="sm" style="margin-top:8px">Touche une épreuve Messieurs pour ouvrir son classement. Les cadres verts sont les passages de Léo.</div>';
+ $('all').innerHTML=h}
 {const n=nextIdx();if(n>=0){S.ep=PROG[n].ep;S.ba='25m'}}
-draw();tickProg();setInterval(tickProg,1000);
+draw();tickProg();progAll();setInterval(()=>{tickProg();progAll()},1000);
 </script></body></html>
